@@ -41,6 +41,7 @@ Helper function to read data files of requested stocks and extract date range
 """
 def get_data(start_date, end_date, symbols, column_name = 'Adj Close', include_spy=True):
     
+
     standardized_symbols = []
     #Catch lowercase symbols
     
@@ -234,6 +235,7 @@ def MACD(dataframe, window_size_1, window_size_2):
     
     return moving_difference
 
+
 """
 Helper function to compute the singal line of a dataframe.
 
@@ -258,20 +260,35 @@ REQUIRES VOLUME DATA AS WELL
 @param dataframe: The price AND volume data for the stocks whose on-balance volume we wish to calculate. 
 @return A dataframe of on-balance volume history for the stocks 
 """
-def On_Balance_Volume(dataframe):
+def On_Balance_Volume(price_dataframe, volume_dataframe):
     
     #If OBV up--buyers are willing to push price higher 
     # Down means selling outpacing buying 
     
-    obv = dataframe.copy()
+    obv = price_dataframe.copy()
+    obv.values[0] = 0
+    test_df = volume_dataframe.copy()
+    test_df['Price'] = price_dataframe.values
+   
     
-    daily_returns = dataframe.copy()
-    daily_returns.values[1:,:] = dataframe.values[1:,:] - dataframe.values[:-1, :]
-    daily_returns.values[0, :] = np.nan
+    daily_returns = price_dataframe.copy()
+    daily_returns.values[1:,:] = price_dataframe.values[1:,:] - price_dataframe.values[:-1, :]
+    daily_returns.values[0, :] = 0
+    test_df['Daily_Returns'] = daily_returns.values
+    print(test_df)
     
-    up_returns = daily_returns[daily_returns >= 0].fillna(0).cumsum()
-    down_returns = -1 * daily_returns[daily_returns < 0].fillna(0).cumsum()
-
+    daily_returns.values[daily_returns.values < 0] = -1
+    
+    daily_returns.values[daily_returns.values > 0] = 1
+    daily_returns.values[daily_returns.values == 0] = 0
+    print(daily_returns)
+    
+    obv = (daily_returns * volume_dataframe)
+    obv = obv.cumsum()
+    
+    return obv
+    
+    
     
 """
 A helper function used to calculate the Aroon oscillator using a Aroon Indicator. 
