@@ -113,12 +113,11 @@ def Bollinger_Bands(dataframe, window_size, band_range=2):
     rolling_std = sma_df["Price"].rolling(window=window_size, min_periods=window_size).std()
     top_band = sma_df["SMA"] + (band_range * rolling_std)
     bottom_band = sma_df["SMA"] - (band_range * rolling_std)
-    sma_df["Bottom Band"] = bottom_band
-    bb_sma = sma_df
-    bb_sma["Top Band"] = top_band
-
-    
-    return bb_sma 
+    sma_df["Top Band"] = top_band
+    bb = sma_df
+    bb["Bottom Band"] = bottom_band
+   
+    return bb
 
 
 """
