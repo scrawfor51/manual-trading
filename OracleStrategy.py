@@ -10,6 +10,8 @@ import pandas as pd
 import numpy as np
 import backtester_manual_trading as backtester
 from matplotlib import cm
+import matplotlib.pyplot as plt
+
 
 class OracleStrategy:
     def __init__(self, *params, **kwparams):
@@ -59,12 +61,12 @@ class OracleStrategy:
         for trade in trade_list:
             print ("    ".join(str(x) for x in trade))       
             
-            
         
         daily_returns.values[1:,:] = abs(df_trades.values[1:,:] - df_trades.values[:-1, :]) * 1000
         daily_returns.values[0, :] = np.nan
         daily_returns['Cumulative Returns'] = (daily_returns).cumsum()
         daily_returns['Max Value'] = 200000 + daily_returns['Cumulative Returns']
+        
         """
         
         print(trades)
@@ -74,24 +76,26 @@ class OracleStrategy:
 if __name__ == "__main__": 
     
     #start_date = '2018-01-01', end_date = '2019-12-31'
-    start ='2018-01-01'
-    end = '2019-12-31'
-    data = tech_ind.get_data(start_date = start, end_date = end, symbols =['DIS'],  include_spy=False)
+    start ='2019-01-01'
+    end = '2020-12-31'
+    sym = "SPY"
+    data = tech_ind.get_data(start_date = start, end_date = end, symbols =[sym],  include_spy=False)
    
     daily_returns = (data.shift()-data) * 1000
     daily_returns.values[0, :] = np.nan
     daily_returns = daily_returns.cumsum()
     
     OS = OracleStrategy()
-    oracle = OS.test(start_date = start, end_date = end)
+    oracle = OS.test(start_date = start, end_date = end, symbol = sym)
     portfolio = backtester.assess_strategy_dataframe(oracle, start, end, starting_value = 200000, fixed_cost = 0, floating_cost = 0)
     print(portfolio)
-    backtester.calc_portfolio(portfolio)
+    backtester.calc_portfolio(portfolio, starting_value = 200000)
     base_returns = daily_returns
     base_returns.columns = ['Portfolio']
-    backtester.calc_portfolio(base_returns)
+    backtester.calc_portfolio(base_returns, starting_value = 200000)
     base_returns.columns = ['Baseline']
     base_returns['Max Value'] =  portfolio - 200000
     plot = base_returns.plot(title='Baseline vs. Oracle', colormap=cm.Accent)
     plot.grid()
+    plt.show()
     

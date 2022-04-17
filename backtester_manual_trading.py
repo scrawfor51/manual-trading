@@ -98,7 +98,7 @@ def calc_portfolio(portfolio_val, starting_value = 0, risk_free_rate = 0.0, samp
     end_value = portfolio_val["Portfolio"].iloc[-1]
     average_daily_return = ((portfolio["Portfolio"]/ portfolio["Portfolio"].shift()) - 1).mean()
     stdev_daily_return = ((portfolio_val["Portfolio"]/ portfolio_val["Portfolio"].shift()) - 1).std()
-    cumulative_return = end_value - (starting_value) 
+    cumulative_return = (end_value/starting_value) - 1 
     sharpe_ratio = m.sqrt(sample_freq) * ((average_daily_return - risk_free_rate)/ stdev_daily_return)
 
     print("Sharpe Ratio: ", sharpe_ratio)    

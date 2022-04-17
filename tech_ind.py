@@ -11,7 +11,7 @@ import pandas as pd
 from matplotlib import pyplot as plt 
 import math
 import numpy as np
-from backtest import get_data as gd # can use this instead of the code for get_data 
+#from backtester_manual_trading import get_data as gd # can use this instead of the code for get_data 
 
 # use ./data
 # in sample of 1/1/2018-12/31/2019
