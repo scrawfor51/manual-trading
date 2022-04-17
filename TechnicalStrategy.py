@@ -21,7 +21,7 @@ class TechnicalStrategy:
 
     def test(self, start_date='2020-01-01', end_date='2021-12-31', symbol = 'DIS', starting_cash = 200000):
         
-        lookback = 9
+        lookback = 14
         
         price = tech_ind.get_data(start_date, end_date, symbols=[symbol], include_spy=(False))
         
@@ -47,10 +47,10 @@ class TechnicalStrategy:
         
         sma_cross[bb_ratios["SMA"] >= 1] = 1
         
-        #Create a binary (0-1) array showing when price is within 10% of OBV-14
+        #Create a binary (0-1) array showing when OBV is within 10% of OBV-14
         obv_trade = pd.DataFrame(0, index=bb.index, columns= ["OBV Trade"])
-        obv_trade[abs(obv[symbol]/obv_avg[symbol] - 1) < .1] = 1
-        #obv_trade = obv_trade.loc[(obv_trade != 0).any(axis=1)]
+        obv_trade[obv[symbol] > obv_avg[symbol]] = 1
+        obv_trade = obv_trade.loc[(obv_trade != 0).any(axis=1)]
         #obv_trade["OBV Trade"] = 1 if abs(obv/obv_avg - 1) < 1 else 0
         
         print(obv_trade)
@@ -64,13 +64,13 @@ class TechnicalStrategy:
         #print(williams_per)
         print(obv)
         print(obv_avg)
-        trades[(bb["Top Band"] < bb["Price"]) & ((williams_per["Williams Percentage"] < -20) & (obv_trade["OBV Trade"] == 1)) ] = 1000
-        trades[(bb["Bottom Band"] > bb["Price"]) & ((williams_per["Williams Percentage"] > -80) & (obv_trade["OBV Trade"] == 1))] = 1000
+        trades[(bb["Top Band"] < bb["Price"]) & ((williams_per["Williams Percentage"] > -20) | (obv_trade["OBV Trade"] == 1)) ] = -1000
+        trades[(bb["Bottom Band"] > bb["Price"]) & ((williams_per["Williams Percentage"] < -80) | (obv_trade["OBV Trade"] == 1))] = 1000
         
         #Breakout Strategy when price is above/below the Bollinger Bands but not valued as "overbought" or "oversold" by the Williams Percent Range AND On-Balance Volume, buy to ride the momentum
         # Short when low, buy when high
-        trades[(bb["Top Band"] < bb["Price"]) & ((williams_per["Williams Percentage"] > -20) & (obv_trade["OBV Trade"] == 0))] = 1000
-        trades[(bb["Bottom Band"] > bb["Price"]) & ((williams_per["Williams Percentage"] < -80) & (obv_trade["OBV Trade"] == 0))] = 1000        
+        trades[(bb["Top Band"] < bb["Price"]) & ((williams_per["Williams Percentage"] < -20) & (obv_trade["OBV Trade"] == 0))] = 1000
+        trades[(bb["Bottom Band"] > bb["Price"]) & ((williams_per["Williams Percentage"] > -80) & (obv_trade["OBV Trade"] == 0))] = -1000        
         
         # Apply our exit order conditions all at once.  Again, this represents TARGET SHARES.
         trades[(sma_cross != 0)] = 0       
@@ -94,15 +94,16 @@ class TechnicalStrategy:
 
 
 if __name__ == "__main__":    
-    start ='2019-01-01'
-    end = '2020-12-31'
-    sym = "SPY"
+    start ='2008-01-01'
+    end = '2009-12-31'
+    sym = "DIS"
     data = tech_ind.get_data(start_date = start, end_date = end, symbols =[sym],  include_spy=False)
    
     daily_returns = (data.shift()-data) * 1000
     daily_returns.values[0, :] = np.nan
     daily_returns = daily_returns.cumsum()
     
+    """
     TS = TechnicalStrategy()
     tech_trader = TS.test(start_date = start, end_date = end, symbol = sym)
     portfolio = backtester.assess_strategy_dataframe(tech_trader, start, end, starting_value = 200000)
@@ -116,3 +117,29 @@ if __name__ == "__main__":
     plot = base_returns.plot(title='Baseline vs. Technical Strategy', colormap=cm.Accent)
     plot.grid()
     plt.show()
+    """
+    
+    baseline = data.copy()
+    baseline.loc[:,:] = np.NaN
+    baseline.iloc[0,0] = 1000
+    baseline_portfolio = backtester.assess_strategy_dataframe(baseline, start, end, starting_value = 200000, fixed_cost = 0, floating_cost = 0)
+    print("BASELINE STATS: ")
+    backtester.calc_portfolio(baseline_portfolio)
+    
+    
+    TS = TechnicalStrategy()
+    tech_trader = TS.test(start_date = start, end_date = end, symbol = sym)
+    tech_portfolio = backtester.assess_strategy_dataframe(tech_trader, start, end, starting_value = 200000)
+    print(tech_portfolio)
+    print("TECHNICAL STRATEGY STATS: ")
+    backtester.calc_portfolio(tech_portfolio)
+    
+    base_returns = baseline_portfolio.copy() - 200000
+    base_returns.columns = ['Baseline']
+    base_returns['Tech Portfolio'] =  tech_portfolio - 200000
+    plot = base_returns.plot(title='Baseline vs. Tech Strategy', colormap=cm.Accent)
+    plot.grid()
+    for day in tech_trader.index:
+        plt.axvline(x=day)    
+    
+    plt.show()    
